@@ -23,7 +23,7 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -41,7 +41,9 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     validate-on-migrate: true
-
+    placeholders:
+      superadmin_email: rishabh07@yopmail.com
+      superadmin_password: Rishahb@123
   # Redis Configuration
   data:
     redis:
