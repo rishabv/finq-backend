@@ -3,7 +3,10 @@ package com.finq.entities;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +17,8 @@ import java.util.Set;
         @Index(name="idx_permissions_resource_action", columnList = "resource, action")
 })
 @Getter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Permission extends BaseEntity {
     @NotBlank(message = "Permission name is required")
     @Size(min = 2, max = 50, message = "Permission name must be between 2 and 50 characters")
@@ -37,6 +42,7 @@ public class Permission extends BaseEntity {
     private String description;
 
     @ManyToMany(mappedBy = "permissions")
+    @JsonIgnore
     private Set<Role> roles = new HashSet<>();
 
     public Permission(String permissionName, String permissionCode, String resource, String action, String description) {

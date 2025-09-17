@@ -72,4 +72,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByPhone(String phone);
 
     long countByCreationDateAfter(LocalDateTime date);
+
+    Optional<User> findFirstByEmail(String email);
 }

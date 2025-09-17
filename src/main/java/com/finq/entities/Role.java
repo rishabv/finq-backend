@@ -1,5 +1,6 @@
 package com.finq.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,6 +18,7 @@ import java.util.Set;
 })
 @EntityListeners(AuditingEntityListener.class)
 @Getter
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Role extends BaseEntity {
     @NotBlank(message = "Role name is required.")
     @Size(min = 2, max = 100, message = "Role name must be between 2 and 100 characters")

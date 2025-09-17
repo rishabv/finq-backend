@@ -7,11 +7,15 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "admin_users", indexes = {
@@ -23,6 +27,8 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class AdminUser extends BaseEntity {
 
     @Column(name = "employee_id")
@@ -58,10 +64,12 @@ public class AdminUser extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id", nullable = false)
+    @JsonIgnoreProperties({"permissions", "parentRole"})
     private Role role;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
+    @JsonIgnore
     private AdminUser manager;
 
     @Enumerated(EnumType.STRING)
@@ -72,12 +80,14 @@ public class AdminUser extends BaseEntity {
     private LocalDateTime lastLogin;
 
     @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "mfa_enabled", nullable = false)
     private Boolean mfaEnabled = false;
 
     @Column(name = "mfa_secret")
+    @JsonIgnore
     private String mfaSecret;
 
     @Column(name = "failed_login_attempts", nullable = false)

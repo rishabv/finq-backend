@@ -1,6 +1,7 @@
 package com.finq.security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +27,16 @@ public class JwtTokenProvider {
     @Value("${jwt.refresh-expiration}")
     private long jwtRefreshExpirationInMs;
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-    }
-
     public String generateToken(Authentication authentication) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         return generateTokenFromUserPrincipal(userPrincipal);
     }
+
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(this.jwtSecret);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
 
     public String generateTokenFromUserPrincipal(UserPrincipal principal) {
         Date exp = new Date(System.currentTimeMillis() + jwtExpirationInMs);
@@ -50,11 +53,11 @@ public class JwtTokenProvider {
         }
 
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(principal.getId().toString())
-                .setIssuedAt(new Date())
-                .setExpiration(exp)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .claims(claims)
+                .subject(principal.getId().toString())
+                .issuedAt(new Date())
+                .expiration(exp)
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -65,50 +68,50 @@ public class JwtTokenProvider {
         claims.put("userId", userPrincipal.getId().toString());
         claims.put("tokenType", "refresh");
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userPrincipal.getId().toString())
-                .setIssuedAt(new Date())
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
+                .claims(claims)
+                .subject(userPrincipal.getId().toString())
+                .issuedAt(new Date())
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
     public UUID getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
 
         return UUID.fromString(claims.getSubject());
     }
 
     public String getEmailFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
 
         return claims.get("email", String.class);
     }
 
     public String getUserTypeFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
 
         return claims.get("userType", String.class);
     }
 
     public Date getExpirationDateFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(getSigningKey())
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
 
         return claims.getExpiration();
     }
@@ -116,9 +119,9 @@ public class JwtTokenProvider {
     public boolean validateToken(String authToken) {
         try {
             Jwts.parser()
-                    .setSigningKey(getSigningKey())
+                    .verifyWith(getSigningKey())
                     .build()
-                    .parseClaimsJws(authToken);
+                    .parseSignedClaims(authToken);
             return true;
         } catch (SecurityException ex) {
             logger.error("Invalid JWT signature: {}", ex.getMessage());

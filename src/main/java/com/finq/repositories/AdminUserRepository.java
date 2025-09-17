@@ -36,4 +36,5 @@ public interface AdminUserRepository extends JpaRepository<AdminUser, UUID> {
     @Query("SELECT a FROM AdminUser a WHERE a.manager.id = :managerId AND a.status = 'ACTIVE'")
     List<AdminUser> findByManagerId(@Param("managerId") UUID managerId);
 
+    Optional<AdminUser> findFirstByEmail(String email);
 }
