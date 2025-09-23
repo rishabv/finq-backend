@@ -71,6 +71,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByPhone(String phone);
 
+    boolean existsByAdhaarNumber(String adhaar);
+
+    boolean existsByPanNumber(String pan);
+
     long countByCreationDateAfter(LocalDateTime date);
 
     Optional<User> findFirstByEmail(String email);

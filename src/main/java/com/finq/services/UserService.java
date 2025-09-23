@@ -1,11 +1,17 @@
 package com.finq.services;
 
+import com.finq.dtos.requests.CreateUserRequest;
+import com.finq.dtos.responses.BaseApiResponse;
+import com.finq.entities.AdminUser;
 import com.finq.entities.User;
 import com.finq.enums.KycStatus;
 import com.finq.enums.Status;
 import com.finq.repositories.UserRepository;
+import com.finq.utils.Utils;
+import com.finq.utils.VerificationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Transactional
@@ -30,37 +37,8 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * Find user by ID
-     */
-    @Transactional(readOnly = true)
-    public Optional<User> findById(UUID userId) {
-        return userRepository.findById(userId);
-    }
-
-    /**
-     * Find user by email
-     */
-    @Transactional(readOnly = true)
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
-
-    /**
-     * Find user by customer ID
-     */
-    @Transactional(readOnly = true)
-    public Optional<User> findByCustomerId(String customerId) {
-        return userRepository.findByCustomerId(customerId);
-    }
-
-    /**
-     * Get all users with pagination
-     */
-    @Transactional(readOnly = true)
-    public Page<User> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable);
-    }
+    @Autowired
+    private VerificationUtils verificationUtils;
 
     /**
      * Find users by KYC status
@@ -102,24 +80,6 @@ public class UserService {
 
         return updatedUser;
     }
-
-    /**
-     * Change user password
-     */
-    public void changePassword(UUID userId, String currentPassword, String newPassword) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect");
-        }
-
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        logger.info("Password changed for user: {}", user.getEmail());
-    }
-
 
 
     /**
@@ -186,73 +146,47 @@ public class UserService {
         logger.warn("User account closed: {} - Reason: {}", user.getEmail(), reason);
     }
 
-    /**
-     * Get user statistics
-     */
-    @Transactional(readOnly = true)
-    public UserStats getUserStats() {
-        long totalUsers = userRepository.count();
-        long activeUsers = userRepository.countByStatus(Status.ACTIVE);
-        long pendingVerification = userRepository.countByStatus(Status.PENDING_VERIFICATION);
-        long suspendedUsers = userRepository.countByStatus(Status.SUSPENDED);
-
-        long kycVerified = userRepository.countByKycStatus(KycStatus.VERIFIED);
-        long kycPending = userRepository.countByKycStatus(KycStatus.PROCESSING) +
-                userRepository.countByKycStatus(KycStatus.UNDER_REVIEW);
-
-        LocalDateTime lastWeek = LocalDateTime.now().minusDays(7);
-        long newUsersThisWeek = userRepository.countUsersCreatedSince(lastWeek);
-
-        return new UserStats(totalUsers, activeUsers, pendingVerification, suspendedUsers,
-                kycVerified, kycPending, newUsersThisWeek);
+    public boolean validateExistence(String adhaar, String pan) {
+        boolean adhaarExists = userRepository.existsByAdhaarNumber(adhaar);
+        boolean panExists = userRepository.existsByPanNumber(pan);
+        if(adhaarExists || panExists) throw new IllegalArgumentException("Details already exists");
+        return true;
     }
 
-    /**
-     * Check if user exists by email
-     */
-    @Transactional(readOnly = true)
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
+    public User createCustomer(CreateUserRequest request) {
+        validateExistence(request.getAadhaarNumber(), request.getPanNumber());
+        CompletableFuture<Boolean> adhaarFuture = verificationUtils.validateAdhaar(request.getAadhaarNumber());
+        CompletableFuture<Boolean> panFuture = verificationUtils.validatePan(request.getPanNumber());
+        CompletableFuture<Boolean> beureaFurure = verificationUtils.validateCreditBurea(request.getPanNumber());
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(panFuture, adhaarFuture, beureaFurure);
+        CompletableFuture<Boolean> isValidated = allFutures.thenApply((v) -> {
+            boolean panValid = panFuture.join();
+            boolean aadhaarValid = adhaarFuture.join();
+            boolean creditValid = beureaFurure.join();
+            return panValid && aadhaarValid && creditValid; //
+        }).exceptionally(ex -> {
+            throw new IllegalArgumentException("KYC validation failed due to: " + ex.getMessage());
+        });
 
-    /**
-     * Check if user exists by phone
-     */
-    @Transactional(readOnly = true)
-    public boolean existsByPhone(String phone) {
-        return userRepository.existsByPhone(phone);
-    }
-
-
-
-    // Inner class for user statistics
-    public static class UserStats {
-        private final long totalUsers;
-        private final long activeUsers;
-        private final long pendingVerification;
-        private final long suspendedUsers;
-        private final long kycVerified;
-        private final long kycPending;
-        private final long newUsersThisWeek;
-
-        public UserStats(long totalUsers, long activeUsers, long pendingVerification,
-                         long suspendedUsers, long kycVerified, long kycPending, long newUsersThisWeek) {
-            this.totalUsers = totalUsers;
-            this.activeUsers = activeUsers;
-            this.pendingVerification = pendingVerification;
-            this.suspendedUsers = suspendedUsers;
-            this.kycVerified = kycVerified;
-            this.kycPending = kycPending;
-            this.newUsersThisWeek = newUsersThisWeek;
+        if(!isValidated.join()) {
+            throw new IllegalArgumentException("Details could not be verified.");
         }
 
-        // Getters
-        public long getTotalUsers() { return totalUsers; }
-        public long getActiveUsers() { return activeUsers; }
-        public long getPendingVerification() { return pendingVerification; }
-        public long getSuspendedUsers() { return suspendedUsers; }
-        public long getKycVerified() { return kycVerified; }
-        public long getKycPending() { return kycPending; }
-        public long getNewUsersThisWeek() { return newUsersThisWeek; }
+        String tempPassword = Utils.generateRandomString();
+        String passwordHash = passwordEncoder.encode(tempPassword);
+        User user = new User();
+        BeanUtils.copyProperties(request, user);
+        user.setStatus(Status.ONBOARDED);
+        user.setPasswordHash(passwordHash);
+        user.setCustomerId(Utils.generateCustomerId());
+        // saving the user to DB.
+        User createdUser = userRepository.save(user);
+        // TODO  send email to user to create their credentials;
+        System.out.println(createdUser.getCustomerId() + " " + createdUser.getEmail() + " " + tempPassword);
+        return createdUser;
+    }
+
+    public AdminUser createAdminUser(CreateUserRequest request) {
+        return null;
     }
 }

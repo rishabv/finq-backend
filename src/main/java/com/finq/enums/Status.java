@@ -1,6 +1,7 @@
 package com.finq.enums;
 
 public enum Status {
+    ONBOARDED,
     ACTIVE,
     INACTIVE,
     TERMINATED,

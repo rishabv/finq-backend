@@ -6,11 +6,14 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+
 import org.springframework.beans.factory.annotation.Value;
 
 @Component
@@ -43,7 +46,7 @@ public class JwtTokenProvider {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", principal.getId().toString());
         claims.put("email", principal.getEmail());
-        claims.put("userType", principal.getUserType());
+        claims.put("roles", Collections.singletonList(principal.getUserType()));
         if (principal.getCustomerId() != null) {
             claims.put("customerId", principal.getCustomerId());
         }
@@ -102,8 +105,15 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-
-        return claims.get("userType", String.class);
+        Object userTypeObj = claims.get("userType");
+        if (userTypeObj instanceof String) {
+            return (String) userTypeObj;
+        } else if (userTypeObj instanceof List) {
+            // Get the first role if it's a list
+            List<?> userTypes = (List<?>) userTypeObj;
+            return userTypes.isEmpty() ? null : userTypes.get(0).toString();
+        }
+        return null;
     }
 
     public Date getExpirationDateFromToken(String token) {
@@ -122,6 +132,7 @@ public class JwtTokenProvider {
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(authToken);
+            System.out.println("-----------------------" + getUserTypeFromToken(authToken));
             return true;
         } catch (SecurityException ex) {
             logger.error("Invalid JWT signature: {}", ex.getMessage());
@@ -135,5 +146,29 @@ public class JwtTokenProvider {
             logger.error("JWT claims string is empty: {}", ex.getMessage());
         }
         return false;
+    }
+
+    public Claims getClaimsFromToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public Collection<? extends GrantedAuthority> extractAuthorities(Claims claims) {
+        Collection<GrantedAuthority> authorities = new HashSet<>();
+        if (claims.containsKey("roles")) {
+            Object rolesClaim = claims.get("roles");
+            @SuppressWarnings("unchecked")
+            Collection<String> roles = (Collection<String>) rolesClaim;
+            roles.forEach(role -> {
+//                if (!role.startsWith("ROLE_")) {
+//                    role = "ROLE_" + role;
+//                }
+                authorities.add(new SimpleGrantedAuthority(role));
+            });
+        }
+        return authorities;
     }
 }

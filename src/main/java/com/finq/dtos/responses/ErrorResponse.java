@@ -27,4 +27,8 @@ public class ErrorResponse {
         this.details = details;
     }
 
+    public ErrorResponse(String message) {
+        this.message = message;
+    }
+
 }

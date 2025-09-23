@@ -1,18 +1,26 @@
 package com.finq.dtos.requests;
 
 import jakarta.validation.constraints.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class CreateUserRequest {
+
+    @NotNull(message = "User Type should not be blank")
+    private UserType userType;
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid phone number format")
+//    @Pattern(regexp = "^[0-9]{10}$", message = "Invalid phone number format")
     private String phone;
 
     @NotBlank(message = "First name is required")
@@ -39,86 +47,6 @@ public class CreateUserRequest {
     @Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must be 12 digits")
     private String aadhaarNumber;
 
-    @NotNull(message = "Personal questions are required")
-    @Size(min = 5, max = 5, message = "Exactly 5 personal questions are required")
-    private List<PersonalQuestionDto> personalQuestions;
-
-    // Constructors
-    public CreateUserRequest() {}
-
-    // Getters and Setters
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
-    }
-
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public String getPanNumber() {
-        return panNumber;
-    }
-
-    public void setPanNumber(String panNumber) {
-        this.panNumber = panNumber;
-    }
-
-    public String getAadhaarNumber() {
-        return aadhaarNumber;
-    }
-
-    public void setAadhaarNumber(String aadhaarNumber) {
-        this.aadhaarNumber = aadhaarNumber;
-    }
-
-    public List<PersonalQuestionDto> getPersonalQuestions() {
-        return personalQuestions;
-    }
-
-    public void setPersonalQuestions(List<PersonalQuestionDto> personalQuestions) {
-        this.personalQuestions = personalQuestions;
-    }
-
     // Inner class for personal questions
     public static class PersonalQuestionDto {
         @NotBlank(message = "Question text is required")
@@ -129,19 +57,8 @@ public class CreateUserRequest {
         @Size(min = 2, max = 100, message = "Answer must be between 2 and 100 characters")
         private String answer;
 
-        @NotNull(message = "Question order is required")
-        @Min(value = 1, message = "Question order must be between 1 and 5")
-        @Max(value = 5, message = "Question order must be between 1 and 5")
-        private Integer questionOrder;
-
         // Constructors
         public PersonalQuestionDto() {}
-
-        public PersonalQuestionDto(String questionText, String answer, Integer questionOrder) {
-            this.questionText = questionText;
-            this.answer = answer;
-            this.questionOrder = questionOrder;
-        }
 
         // Getters and Setters
         public String getQuestionText() {
@@ -159,13 +76,10 @@ public class CreateUserRequest {
         public void setAnswer(String answer) {
             this.answer = answer;
         }
+    }
 
-        public Integer getQuestionOrder() {
-            return questionOrder;
-        }
-
-        public void setQuestionOrder(Integer questionOrder) {
-            this.questionOrder = questionOrder;
-        }
+    public enum UserType {
+        CUSTOMER,
+        OFFICER,
     }
 }

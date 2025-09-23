@@ -1,6 +1,7 @@
 package com.finq.controllers;
 
 import com.finq.dtos.requests.AdminLoginRequest;
+import com.finq.dtos.requests.CreateUserRequest;
 import com.finq.dtos.requests.UpdateKycRequest;
 import com.finq.dtos.responses.BaseApiResponse;
 import com.finq.entities.AdminUser;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,7 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("api/v1/admin")
+@RequestMapping("/admin")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
 @Tag(name = "Admin Operations", description = "Admin panel endpoints for user and system management")
 public class AdminController {
@@ -84,34 +86,49 @@ public class AdminController {
         }
     }
 
-    @GetMapping("/users/{id}")
-    @Operation(summary = "Get user details", description = "Get detailed information about a specific user")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'BANK_MANAGER', 'CUSTOMER_SERVICE', 'KYC_OFFICER')")
-    public ResponseEntity<?> getUserDetails(@PathVariable UUID id) {
-        try {
-            User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
-            return ResponseEntity.ok(new BaseApiResponse<>(user));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error fetching user details for ID: {}", id, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch user details"));
+//    @GetMapping("/users/{id}")
+//    @Operation(summary = "Get user details", description = "Get detailed information about a specific user")
+//    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'BANK_MANAGER', 'CUSTOMER_SERVICE', 'KYC_OFFICER')")
+//    public ResponseEntity<?> getUserDetails(@PathVariable UUID id) {
+//        try {
+//            User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+//            return ResponseEntity.ok(new BaseApiResponse<>(user));
+//        } catch (IllegalArgumentException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+//        } catch (Exception e) {
+//            logger.error("Error fetching user details for ID: {}", id, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch user details"));
+//        }
+//    }
+//
+//    @PutMapping("/users/{userId}/kyc")
+//    @PreAuthorize("hasRole('SUPER_ADMIN', 'KYC_OFFICER', 'BANK_MANAGER')")
+//    public ResponseEntity<?> updateKycStatus(@PathVariable UUID userId, @Valid @RequestBody UpdateKycRequest request) {
+//        try {
+//            userService.updateKycStatus(userId, request.getKycStatus());
+//
+//            return ResponseEntity.ok(Map.of("message", "KYC status updated successfully", "userId", userId, "newKycStatus", request.getKycStatus()));
+//        } catch (IllegalArgumentException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+//        } catch (Exception e) {
+//            logger.error("Error updating KYC status for ID: {}", userId, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to update KYC status"));
+//        }
+//    }
+
+    @PostMapping("/createUser")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'BANK_MANAGER')")
+    public ResponseEntity<BaseApiResponse<Object>> createUser(@Valid @RequestBody CreateUserRequest request) {
+        BaseApiResponse<Object> response = new BaseApiResponse<>();
+        if(request.getUserType() == CreateUserRequest.UserType.CUSTOMER) {
+            User createdUser = userService.createCustomer(request);
+            response.setMessage("New Customer added successfuly.");
+            response.setData(createdUser);
+        } else {
+            AdminUser createdUser = userService.createAdminUser(request);
+            response.setData(createdUser);
+            response.setMessage("A new user with " + request.getUserType() +  " created");
         }
+        return ResponseEntity.ok().body(response);
     }
-
-    @PutMapping("/users/{userId}/kyc")
-    @PreAuthorize("hasRole('SUPER_ADMIN', 'KYC_OFFICER', 'BANK_MANAGER')")
-    public ResponseEntity<?> updateKycStatus(@PathVariable UUID userId, @Valid @RequestBody UpdateKycRequest request) {
-        try {
-            userService.updateKycStatus(userId, request.getKycStatus());
-
-            return ResponseEntity.ok(Map.of("message", "KYC status updated successfully", "userId", userId, "newKycStatus", request.getKycStatus()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            logger.error("Error updating KYC status for ID: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to update KYC status"));
-        }
-    }
-
 }

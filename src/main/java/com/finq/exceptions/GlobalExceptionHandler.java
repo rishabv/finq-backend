@@ -1,5 +1,6 @@
 package com.finq.exceptions;
 
+import com.finq.dtos.responses.BaseApiResponse;
 import org.hibernate.boot.model.naming.IllegalIdentifierException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import com.finq.dtos.responses.ErrorResponse;
@@ -94,7 +96,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
+    public ResponseEntity<BaseApiResponse<ErrorResponse>> handleGlobalException(
             Exception ex, WebRequest request) {
 
         ErrorResponse errorResponse = new ErrorResponse(
@@ -104,6 +106,13 @@ public class GlobalExceptionHandler {
         );
 
         logger.error("Unexpected error occurred", ex);
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new BaseApiResponse<>(errorResponse), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(value = HttpStatus.CONFLICT)
+    public ResponseEntity<BaseApiResponse<ErrorResponse>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ResponseEntity<>(new BaseApiResponse<>(new ErrorResponse(ex.getMessage())), HttpStatus.BAD_REQUEST);
+    }
+
 }

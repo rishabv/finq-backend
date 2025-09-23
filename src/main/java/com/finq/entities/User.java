@@ -5,16 +5,11 @@ import com.finq.enums.Gender;
 import com.finq.enums.KycStatus;
 import com.finq.enums.Status;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -29,26 +24,18 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class User extends BaseEntity {
-    @NotBlank(message = "First name is required")
-    @Size(min=2, max = 100, message = "First name is exceeding the characters")
     @Column(name="first_name", nullable = false, length = 100)
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
-    @Size(min=2, max = 100, message = "Last name is exceeding the characters")
     @Column(name="last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Email(message = "Email format is not valid")
-    @NotBlank(message = "Email cannot be blank")
     @Column(name="email", unique = true, nullable = false, length = 100)
     private String email;
 
     @Column(name="customer_id", unique = true, nullable = false, length = 10)
     private String customerId;
 
-    @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Phone number should be valid")
-    @NotBlank(message = "Phone number is required")
     @Column(name = "phone")
     private String phone;
 
@@ -60,10 +47,8 @@ public class User extends BaseEntity {
     private String dateOfBirth;
 
     @Column(name = "pan_number")
-    @Pattern(regexp = "^[+]?[1-9]\\d{1,14}$", message = "Pan number should be valid")
     private String panNumber;
 
-    @Pattern(regexp="^[0-9]{12}$", message = "Aadhaar number should be valid")
     @Column(name = "adhaar_number")
     private String adhaarNumber;
 
