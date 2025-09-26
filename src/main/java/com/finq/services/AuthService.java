@@ -5,6 +5,7 @@ import com.finq.dtos.responses.LoginResponse;
 import com.finq.entities.AdminUser;
 import com.finq.entities.Role;
 import com.finq.entities.User;
+import com.finq.enums.PermissionCode;
 import com.finq.repositories.AdminUserRepository;
 import com.finq.repositories.RoleRepository;
 import com.finq.security.JwtTokenProvider;
@@ -45,7 +46,7 @@ public class AuthService {
         if(!role.isPresent()) {
             throw new IllegalArgumentException("");
         }
-        List<String> permissions = role.get().getPermissions().stream().map(i->i.getPermissionCode()).toList();
-        return new LoginResponse<AdminUser, String>(adminUser, token, permissions);
+        List<PermissionCode> permissions = role.get().getPermissions().stream().map(i->i.getPermissionCode()).toList();
+        return new LoginResponse<AdminUser, PermissionCode>(adminUser, token, permissions);
     }
 }

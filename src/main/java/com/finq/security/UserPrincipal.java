@@ -71,10 +71,10 @@ public class UserPrincipal implements UserDetails {
         // Set authorities based on role and permissions
         Set<Permission> permissions = adminUser.getRole().getPermissions();
         this.authorities = permissions.stream()
-                .map(permission -> new SimpleGrantedAuthority("PERM_" + permission.getPermissionCode().toUpperCase()))
+                .map(permission -> new SimpleGrantedAuthority("PERM_" + permission.getPermissionCode()))
                 .collect(Collectors.toSet());
 
-        this.authorities.add(new SimpleGrantedAuthority("ROLE_" + adminUser.getRole().getRoleCode().toUpperCase()));
+        this.authorities.add(new SimpleGrantedAuthority("ROLE_" + adminUser.getRole().getRoleCode()));
 
     }
 

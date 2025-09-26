@@ -1,11 +1,13 @@
 package com.finq.services;
 
 import com.finq.dtos.requests.CreateUserRequest;
-import com.finq.dtos.responses.BaseApiResponse;
 import com.finq.entities.AdminUser;
+import com.finq.entities.Role;
 import com.finq.entities.User;
 import com.finq.enums.KycStatus;
+import com.finq.enums.PermissionCode;
 import com.finq.enums.Status;
+import com.finq.enums.UserRole;
 import com.finq.repositories.UserRepository;
 import com.finq.utils.Utils;
 import com.finq.utils.VerificationUtils;
@@ -13,15 +15,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -39,6 +40,9 @@ public class UserService {
 
     @Autowired
     private VerificationUtils verificationUtils;
+
+    @Autowired
+    private AdminService adminService;
 
     /**
      * Find users by KYC status
@@ -153,6 +157,7 @@ public class UserService {
         return true;
     }
 
+    @Transactional
     public User createCustomer(CreateUserRequest request) {
         validateExistence(request.getAadhaarNumber(), request.getPanNumber());
         CompletableFuture<Boolean> adhaarFuture = verificationUtils.validateAdhaar(request.getAadhaarNumber());
@@ -179,6 +184,9 @@ public class UserService {
         user.setStatus(Status.ONBOARDED);
         user.setPasswordHash(passwordHash);
         user.setCustomerId(Utils.generateCustomerId());
+        Set<PermissionCode> permissionCodes = Set.of(PermissionCode.ACCOUNT_UPDATE, PermissionCode.ACCOUNT_READ);
+        Role role = adminService.createUserWithRoleAndPermission(UserRole.CUSTOMER, permissionCodes);
+        user.setRole(role);
         // saving the user to DB.
         User createdUser = userRepository.save(user);
         // TODO  send email to user to create their credentials;

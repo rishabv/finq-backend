@@ -1,11 +1,10 @@
 package com.finq.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.finq.enums.UserRole;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Cleanup;
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.util.HashSet;
@@ -18,17 +17,15 @@ import java.util.Set;
 })
 @EntityListeners(AuditingEntityListener.class)
 @Getter
+@Setter
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Role extends BaseEntity {
-    @NotBlank(message = "Role name is required.")
-    @Size(min = 2, max = 100, message = "Role name must be between 2 and 100 characters")
     @Column(name="role_name", unique = true, nullable = false, length = 100)
     private String RoleName;
 
-    @NotBlank(message = "Role code is required")
-    @Size(min = 2, max = 50, message = "Role code must be between 2 and 50 characters")
     @Column(name = "role_code", unique = true, nullable = false, length = 50)
-    private String roleCode;
+    @Enumerated(EnumType.STRING)
+    private UserRole roleCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_role_id")

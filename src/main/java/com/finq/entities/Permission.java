@@ -1,5 +1,6 @@
 package com.finq.entities;
 
+import com.finq.enums.PermissionCode;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -28,7 +29,8 @@ public class Permission extends BaseEntity {
     @NotBlank(message = "Permission code is required")
     @Size(min = 2, max = 50, message = "Permission code must be between 2 and 50 characters")
     @Column(name = "permission_code", unique = true, nullable = false, length = 50)
-    private String permissionCode;
+    @Enumerated(EnumType.STRING)
+    private PermissionCode permissionCode;
 
     @NotBlank(message = "Resource is required")
     @Column(name = "resource", nullable = false, length = 50)
@@ -45,7 +47,7 @@ public class Permission extends BaseEntity {
     @JsonIgnore
     private Set<Role> roles = new HashSet<>();
 
-    public Permission(String permissionName, String permissionCode, String resource, String action, String description) {
+    public Permission(String permissionName, PermissionCode permissionCode, String resource, String action, String description) {
         this.permissionName = permissionName;
         this.permissionCode = permissionCode;
         this.resource = resource;

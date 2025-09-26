@@ -1,6 +1,7 @@
 package com.finq.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.finq.enums.Gender;
 import com.finq.enums.KycStatus;
 import com.finq.enums.Status;
@@ -86,6 +87,11 @@ public class User extends BaseEntity {
 
     @Column(name = "kyc_verified_at")
     private LocalTime kycVerifiedAt;
+
+    @JoinColumn(name = "role_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"permissions", "parentRole"})
+    private Role role;
 
     public boolean isAccountLocked() {
         return accountLockedUntil != null && accountLockedUntil.isAfter(LocalTime.now());
